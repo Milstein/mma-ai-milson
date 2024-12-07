@@ -1,0 +1,214 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    alpha.image.policy.openshift.io/resolve-names: '*'
+    app.openshift.io/route-disabled: "false"
+    app.openshift.io/vcs-ref: ""
+    app.openshift.io/vcs-uri: https://github.com/Milstein/mma-ai-milstein
+    deployment.kubernetes.io/revision: "1"
+    image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"mma-ai:latest","namespace":"ai"},"fieldPath":"spec.template.spec.containers[?(@.name==\"mma-ai\")].image","paused":"false"}]'
+    openshift.io/generated-by: OpenShiftWebConsole
+  generation: 1
+  labels:
+    app: mma-ai
+    app.kubernetes.io/component: mma-ai
+    app.kubernetes.io/instance: mma-ai
+    app.kubernetes.io/name: mma-ai
+    app.kubernetes.io/part-of: mma-ai-app
+  name: mma-ai
+  namespace: ai
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: mma-ai
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: mma-ai
+        deployment: mma-ai
+    spec:
+      initContainers:
+        - name: fetch-model-data
+          image: ubi8
+          volumeMounts:
+            - name: llama-models
+              mountPath: /models
+          command:
+            - sh
+            - '-c'
+            - |
+              if [ ! -f /models/mistral-7b-instruct-v0.3.Q4_K_M.gguf ] ; then
+                curl -L https://huggingface.co/SanctumAI/Mistral-7B-Instruct-v0.3-GGUF/resolve/main/mistral-7b-instruct-v0.3.Q4_K_M.gguf --output /models/mistral-7b-instruct-v0.3.Q4_K_M.gguf
+              else
+                echo "model /models/mistral-7b-instruct-v0.3.Q4_K_M.gguf already present"
+              fi
+          resources: {}
+      containers:
+        - image: image-registry.openshift-image-registry.svc:5000/ai/mma-ai:latest
+          imagePullPolicy: Always
+          args: ["-m", "/models/mistral-7b-instruct-v0.3.Q4_K_M.gguf", "--prio", "3", "-c", "4096","-b", "32", "-t", "48", "-n", "-1"]
+          name: mma-ai
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          ports:
+            - containerPort: 8080
+              name: http
+          volumeMounts:
+            - name: llama-models
+              mountPath: /models
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 30
+            timeoutSeconds: 1
+            periodSeconds: 20
+            successThreshold: 1
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+              scheme: HTTP
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - name: llama-models
+          emptyDir:
+            medium: Memory
+---
+# BuildConfig for Docker strategy
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: mma-ai
+  namespace: ai
+  labels:
+    app: mma-ai
+    app.kubernetes.io/component: mma-ai
+    app.kubernetes.io/instance: mma-ai
+    app.kubernetes.io/name: mma-ai
+    app.kubernetes.io/part-of: mma-ai-app
+spec:
+  source:
+    git:
+      uri: https://github.com/Milstein/mma-ai-milstein
+      ref: main
+    contextDir: llama-runtime
+    type: Git
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Dockerfile  # Dockerfile in llama-runtime directory
+  output:
+    to:
+      kind: ImageStreamTag
+      name: mma-ai:latest
+  triggers:
+    - type: ConfigChange
+    - type: GitHub
+      github:
+        secret: mysecret  # Replace with your webhook secret
+---
+# ImageStream for the application
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: mma-ai
+  namespace: ai
+  labels:
+    app: mma-ai
+    app.kubernetes.io/component: mma-ai
+    app.kubernetes.io/instance: mma-ai
+    app.kubernetes.io/name: mma-ai
+    app.kubernetes.io/part-of: mma-ai-app
+spec:
+  lookupPolicy:
+    local: true
+---
+# Service to expose the application internally
+apiVersion: v1
+kind: Service
+metadata:
+  name: mma-ai
+  namespace: ai
+  labels:
+    app: mma-ai
+    app.kubernetes.io/component: mma-ai
+    app.kubernetes.io/instance: mma-ai
+    app.kubernetes.io/name: mma-ai
+    app.kubernetes.io/part-of: mma-ai-app
+spec:
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+  selector:
+    app: mma-ai
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: "llama-service"
+  namespace: ai
+  labels:
+    app: mma-ai
+    app.kubernetes.io/component: mma-ai
+    app.kubernetes.io/instance: mma-ai
+    app.kubernetes.io/name: mma-ai
+    app.kubernetes.io/part-of: mma-ai-app
+spec:
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+  selector:
+    app: mma-ai
+  type: ClusterIP
+---
+# Route to expose the service externally
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: mma-ai
+  namespace: ai
+  labels:
+    app: mma-ai
+    app.kubernetes.io/component: mma-ai
+    app.kubernetes.io/instance: mma-ai
+    app.kubernetes.io/name: mma-ai
+    app.kubernetes.io/part-of: mma-ai-app
+spec:
+  to:
+    kind: Service
+    name: mma-ai
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
