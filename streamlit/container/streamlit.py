@@ -38,7 +38,7 @@ def load_and_process_pdfs():
 #    pdf_urls = [
         #"https://www.redbooks.ibm.com/redbooks/pdfs/sg248513.pdf",
         #"https://www.redbooks.ibm.com/redbooks/pdfs/sg248512.pdf"
-        #"https://github.com/Milstein/mma-ai-milstein/raw/main/datasource/The_Forgotten_Lighthouse_Book.pdf"
+        #"https://github.com/Milstein/mma-ai-milson/raw/main/datasource/The_Forgotten_Lighthouse_Book.pdf"
 #    ]
     #pdf_names = ["The_Forgotten_Lighthouse_Book.pdf"]
     #pdf_names = ["IBM_Redbook_8513.pdf", "IBM_Redbook_8512.pdf"]

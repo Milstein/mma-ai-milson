@@ -6,7 +6,7 @@ metadata:
     alpha.image.policy.openshift.io/resolve-names: '*'
     app.openshift.io/route-disabled: "false"
     app.openshift.io/vcs-ref: ""
-    app.openshift.io/vcs-uri: https://github.com/Milstein/mma-ai-milstein
+    app.openshift.io/vcs-uri: https://github.com/Milstein/mma-ai-milson
     deployment.kubernetes.io/revision: "1"
     image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"mma-ai:latest","namespace":"ai"},"fieldPath":"spec.template.spec.containers[?(@.name==\"mma-ai\")].image","paused":"false"}]'
     openshift.io/generated-by: OpenShiftWebConsole
@@ -112,7 +112,7 @@ metadata:
 spec:
   source:
     git:
-      uri: https://github.com/Milstein/mma-ai-milstein
+      uri: https://github.com/Milstein/mma-ai-milson
       ref: main
     contextDir: llama-runtime
     type: Git
@@ -145,6 +145,8 @@ metadata:
 spec:
   lookupPolicy:
     local: true
+  tags:
+    - name: latest
 ---
 # Service to expose the application internally
 apiVersion: v1
