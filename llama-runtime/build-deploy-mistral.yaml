@@ -55,7 +55,7 @@ spec:
               fi
           resources: {}
       containers:
-        - image: image-registry.openshift-image-registry.svc:5000/ai/mma-ai:latest
+        - image: image-registry.openshift-image-registry.svc:5000/nerc-demo-5b7ce1/mma-ai:latest
           imagePullPolicy: Always
           args: ["-m", "/models/mistral-7b-instruct-v0.3.Q4_K_M.gguf", "--prio", "3", "-c", "4096","-b", "32", "-t", "48", "-n", "-1"]
           name: mma-ai

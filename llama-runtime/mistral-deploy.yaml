@@ -30,7 +30,7 @@ spec:
           resources: {}
       containers:
         - name: llama-cpp
-          image: image-registry.openshift-image-registry.svc:5000/ai/llama-runtime-ubi:latest
+          image: quay.io/milstein/llama-runtime-ubi:latest
           imagePullPolicy: Always
           args: ["-m", "/models/mistral-7b-instruct-v0.3.Q4_K_M.gguf", "--prio", "3", "-c", "4096","-b", "32", "-t", "32", "-n", "-1"]
           ports:
