@@ -145,8 +145,6 @@ metadata:
 spec:
   lookupPolicy:
     local: true
-  tags:
-    - name: latest
 ---
 # Service to expose the application internally
 apiVersion: v1
