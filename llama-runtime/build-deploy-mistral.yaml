@@ -18,7 +18,7 @@ metadata:
     app.kubernetes.io/name: mma-ai
     app.kubernetes.io/part-of: mma-ai-app
   name: mma-ai
-  namespace: ai
+  namespace: nerc-demo-5b7ce1
 spec:
   progressDeadlineSeconds: 600
   replicas: 1
@@ -102,7 +102,7 @@ apiVersion: build.openshift.io/v1
 kind: BuildConfig
 metadata:
   name: mma-ai
-  namespace: ai
+  namespace: nerc-demo-5b7ce1
   labels:
     app: mma-ai
     app.kubernetes.io/component: mma-ai
@@ -135,7 +135,7 @@ apiVersion: image.openshift.io/v1
 kind: ImageStream
 metadata:
   name: mma-ai
-  namespace: ai
+  namespace: nerc-demo-5b7ce1
   labels:
     app: mma-ai
     app.kubernetes.io/component: mma-ai
@@ -151,7 +151,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: mma-ai
-  namespace: ai
+  namespace: nerc-demo-5b7ce1
   labels:
     app: mma-ai
     app.kubernetes.io/component: mma-ai
@@ -172,7 +172,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: "llama-service"
-  namespace: ai
+  namespace: nerc-demo-5b7ce1
   labels:
     app: mma-ai
     app.kubernetes.io/component: mma-ai
@@ -194,7 +194,7 @@ apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
   name: mma-ai
-  namespace: ai
+  namespace: nerc-demo-5b7ce1
   labels:
     app: mma-ai
     app.kubernetes.io/component: mma-ai
