@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: milvus-container
-          image: icr.io/ppc64le-oss/milvus-ppc64le:v2.3.3
+          image: milvusdb/milvus:v2.5.0-beta
           ports:
             - containerPort: 19530
           command:

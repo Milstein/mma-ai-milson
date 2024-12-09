@@ -1,16 +1,55 @@
 ---
+# BuildConfig for Docker strategy
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: mma-ai
+  labels:
+    app: mma-ai
+    app.kubernetes.io/component: mma-ai
+    app.kubernetes.io/instance: mma-ai
+    app.kubernetes.io/name: mma-ai
+    app.kubernetes.io/part-of: mma-ai-app
+spec:
+  output:
+    to:
+      kind: ImageStreamTag
+      name: mma-ai:latest
+  source:
+    contextDir: llama-runtime
+    git:
+      uri: https://github.com/Milstein/mma-ai-milson
+      ref: main
+    type: Git
+  strategy:
+    dockerStrategy:
+      dockerfilePath: Dockerfile  # Dockerfile in llama-runtime directory
+    type: Docker
+  triggers:
+  - github:
+      secretReference:
+        name: mma-ai-github-webhook-secret  # Replace with your webhook secret
+    type: GitHub
+  - imageChange: {}
+    type: ImageChange
+  - type: ConfigChange
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: llama-models
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: ocs-external-storagecluster-ceph-rbd
+  volumeMode: Filesystem
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  annotations:
-    alpha.image.policy.openshift.io/resolve-names: '*'
-    app.openshift.io/route-disabled: "false"
-    app.openshift.io/vcs-ref: ""
-    app.openshift.io/vcs-uri: https://github.com/Milstein/mma-ai-milson
-    deployment.kubernetes.io/revision: "1"
-    image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"mma-ai:latest","namespace":"ai"},"fieldPath":"spec.template.spec.containers[?(@.name==\"mma-ai\")].image","paused":"false"}]'
-    openshift.io/generated-by: OpenShiftWebConsole
-  generation: 1
   labels:
     app: mma-ai
     app.kubernetes.io/component: mma-ai
@@ -18,7 +57,6 @@ metadata:
     app.kubernetes.io/name: mma-ai
     app.kubernetes.io/part-of: mma-ai-app
   name: mma-ai
-  namespace: nerc-demo-5b7ce1
 spec:
   progressDeadlineSeconds: 600
   replicas: 1
@@ -33,7 +71,6 @@ spec:
     type: RollingUpdate
   template:
     metadata:
-      creationTimestamp: null
       labels:
         app: mma-ai
         deployment: mma-ai
@@ -53,18 +90,33 @@ spec:
               else
                 echo "model /models/mistral-7b-instruct-v0.3.Q4_K_M.gguf already present"
               fi
-          resources: {}
+          resources:
+            limits:
+              cpu: '3'
+              memory: 5Gi
+            requests:
+              cpu: '2'
+              memory: 2Gi
+          terminationMessagePath: /dev/termination-log
       containers:
-        - image: image-registry.openshift-image-registry.svc:5000/nerc-demo-5b7ce1/mma-ai:latest
+        - image: quay.io/milstein/llama-runtime-ubi:latest
           imagePullPolicy: Always
           args: ["-m", "/models/mistral-7b-instruct-v0.3.Q4_K_M.gguf", "--prio", "3", "-c", "4096","-b", "32", "-t", "48", "-n", "-1"]
           name: mma-ai
-          resources: {}
-          terminationMessagePath: /dev/termination-log
-          terminationMessagePolicy: File
           ports:
             - containerPort: 8080
               name: http
+          resources:
+            limits:
+              cpu: '11'
+              memory: 33Gi
+              nvidia.com/gpu: '1'
+            requests:
+              cpu: '10'
+              memory: 32Gi
+              nvidia.com/gpu: '1'
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
           volumeMounts:
             - name: llama-models
               mountPath: /models
@@ -93,49 +145,18 @@ spec:
       securityContext: {}
       terminationGracePeriodSeconds: 30
       volumes:
+        # - name: llama-models
+        #   emptyDir:
+        #     medium: Memory
         - name: llama-models
-          emptyDir:
-            medium: Memory
----
-# BuildConfig for Docker strategy
-apiVersion: build.openshift.io/v1
-kind: BuildConfig
-metadata:
-  name: mma-ai
-  namespace: nerc-demo-5b7ce1
-  labels:
-    app: mma-ai
-    app.kubernetes.io/component: mma-ai
-    app.kubernetes.io/instance: mma-ai
-    app.kubernetes.io/name: mma-ai
-    app.kubernetes.io/part-of: mma-ai-app
-spec:
-  source:
-    git:
-      uri: https://github.com/Milstein/mma-ai-milson
-      ref: main
-    contextDir: llama-runtime
-    type: Git
-  strategy:
-    type: Docker
-    dockerStrategy:
-      dockerfilePath: Dockerfile  # Dockerfile in llama-runtime directory
-  output:
-    to:
-      kind: ImageStreamTag
-      name: mma-ai:latest
-  triggers:
-    - type: ConfigChange
-    - type: GitHub
-      github:
-        secret: mysecret  # Replace with your webhook secret
+          persistentVolumeClaim:
+            claimName: llama-models
 ---
 # ImageStream for the application
 apiVersion: image.openshift.io/v1
 kind: ImageStream
 metadata:
   name: mma-ai
-  namespace: nerc-demo-5b7ce1
   labels:
     app: mma-ai
     app.kubernetes.io/component: mma-ai
@@ -146,12 +167,13 @@ spec:
   lookupPolicy:
     local: true
 ---
-# Service to expose the application internally
-apiVersion: v1
-kind: Service
+# Route to expose the service externally
+apiVersion: route.openshift.io/v1
+kind: Route
 metadata:
+  annotations:
+    openshift.io/host.generated: "true"
   name: mma-ai
-  namespace: nerc-demo-5b7ce1
   labels:
     app: mma-ai
     app.kubernetes.io/component: mma-ai
@@ -159,20 +181,62 @@ metadata:
     app.kubernetes.io/name: mma-ai
     app.kubernetes.io/part-of: mma-ai-app
 spec:
+  port:
+    targetPort: http
+  tls:
+    insecureEdgeTerminationPolicy: Redirect
+    termination: edge
+  to:
+    kind: Service
+    name: mma-ai
+    weight: 100
+  wildcardPolicy: None
+---
+apiVersion: v1
+data:
+  WebHookSecretKey: YzA5NWE1Mzg3YjM4ZTI2NA==
+kind: Secret
+metadata:
+  labels:
+    app: mma-ai
+    app.kubernetes.io/component: mma-ai
+    app.kubernetes.io/instance: mma-ai
+    app.kubernetes.io/name: mma-ai
+    app.kubernetes.io/part-of: mma-ai-app
+  name: mma-ai-github-webhook-secret
+type: Opaque
+---
+# Service to expose the application internally
+apiVersion: v1
+kind: Service
+metadata:
+  name: mma-ai
+  labels:
+    app: mma-ai
+    app.kubernetes.io/component: mma-ai
+    app.kubernetes.io/instance: mma-ai
+    app.kubernetes.io/name: mma-ai
+    app.kubernetes.io/part-of: mma-ai-app
+spec:
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
   ports:
     - name: http
       port: 8080
-      targetPort: 8080
       protocol: TCP
+      targetPort: 8080
   selector:
     app: mma-ai
+    deployment: mma-ai
+  sessionAffinity: None
   type: ClusterIP
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: "llama-service"
-  namespace: nerc-demo-5b7ce1
   labels:
     app: mma-ai
     app.kubernetes.io/component: mma-ai
@@ -183,32 +247,10 @@ spec:
   ports:
     - name: http
       port: 8080
-      targetPort: 8080
       protocol: TCP
+      targetPort: 8080
   selector:
     app: mma-ai
+    deployment: mma-ai
+  sessionAffinity: None
   type: ClusterIP
----
-# Route to expose the service externally
-apiVersion: route.openshift.io/v1
-kind: Route
-metadata:
-  name: mma-ai
-  namespace: nerc-demo-5b7ce1
-  labels:
-    app: mma-ai
-    app.kubernetes.io/component: mma-ai
-    app.kubernetes.io/instance: mma-ai
-    app.kubernetes.io/name: mma-ai
-    app.kubernetes.io/part-of: mma-ai-app
-spec:
-  to:
-    kind: Service
-    name: mma-ai
-    weight: 100
-  port:
-    targetPort: http
-  tls:
-    termination: edge
-    insecureEdgeTerminationPolicy: Redirect
-  wildcardPolicy: None

@@ -8,7 +8,6 @@ RUN git clone --recursive https://github.com/wernsaar/OpenBLAS.git && cd OpenBLA
     git checkout develop && \
     make -j$(nproc --all) TARGET=POWER10 USE_THREAD=1 && \
     make PREFIX=/opt/OpenBLAS install && \
-    rm -rf OpenBLAS && \
     cd /
 
 RUN git clone https://github.com/DanielCasali/llama.cpp.git && cd llama.cpp && sed -i "s/powerpc64le/native -mvsx -mtune=native -D__POWER10_VECTOR__/g" ggml/src/CMakeLists.txt && \
