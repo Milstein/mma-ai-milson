@@ -1,31 +1,20 @@
-FROM registry.access.redhat.com/ubi9/ubi as builder
+ARG LTS=22.04
+FROM ubuntu:${LTS} AS Base
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl wget ca-certificates && \
+    apt-get install -y --no-install-recommends g++ gcc gfortran git make && \
+    apt-get remove --purge -y
+WORKDIR /src
+ARG OPENBLAS_VERSION=0.3.9
+ENV OPENBLAS_VERSION=${OPENBLAS_VERSION}
+RUN wget "https://github.com/xianyi/OpenBLAS/archive/v${OPENBLAS_VERSION}.tar.gz" && \
+    tar zxvf v${OPENBLAS_VERSION}.tar.gz && rm v${OPENBLAS_VERSION}.tar.gz
+WORKDIR /src/OpenBLAS-${OPENBLAS_VERSION}
+RUN make clean && \
+    make TARGET=CORE2 DYNAMIC_ARCH=1 DYNAMIC_OLDER=1 USE_THREAD=0 USE_OPENMP=0 FC=gfortran CC=gcc COMMON_OPT="-O3 -g -fPIC" FCOMMON_OPT="-O3 -g -fPIC -frecursive" NMAX="NUM_THREADS=128" LIBPREFIX="libopenblas" NO_LAPACKE=1 NO_LAPACKE=1 INTERFACE64=0 NO_STATIC=1
+RUN make PREFIX=/usr NO_STATIC=1 install
 
-RUN dnf update -y && dnf install -y \
-  cmake git ninja-build gcc-c++ cross-gcc-ppc64le \
-  && dnf clean all
-
-RUN uname -m
-RUN lscpu
-
-RUN git clone --recursive https://github.com/wernsaar/OpenBLAS.git && cd OpenBLAS && \
-    git checkout develop && \
-    make -j$(nproc --all) TARGET=POWER10 CC=ppc64le-linux-gnu-gcc USE_THREAD=1 && \
-    make PREFIX=/opt/OpenBLAS install && \
-    cd /
-
-RUN git clone https://github.com/DanielCasali/llama.cpp.git && cd llama.cpp && sed -i "s/powerpc64le/native -mvsx -mtune=native -D__POWER10_VECTOR__/g" ggml/src/CMakeLists.txt && \
-    mkdir build; \
-    cd build; \
-    cmake -DGGML_BLAS=ON -DGGML_BLAS_VENDOR=OpenBLAS -DBLAS_INCLUDE_DIRS=/opt/OpenBLAS/include -G Ninja ..; \
-    cmake --build . --config Release
-
-CMD bash
-
-FROM registry.access.redhat.com/ubi9/ubi 
-
-COPY --from=builder --chmod=755 /llama.cpp/build/bin/llama-server /usr/local/bin
-COPY --from=builder --chmod=644 /llama.cpp/build/src/libllama.so /llama.cpp/build/src/libllama.so
-COPY --from=builder --chmod=644 /llama.cpp/build/ggml/src/libggml.so /llama.cpp/build/ggml/src/libggml.so
-
-
-ENTRYPOINT [ "/usr/local/bin/llama-server", "--host", "0.0.0.0"]
+FROM scratch
+ARG OPENBLAS_VERSION=0.3.9
+ENV OPENBLAS_VERSION=${OPENBLAS_VERSION}
+COPY --from=Base /usr/lib/libopenblas-r${OPENBLAS_VERSION}.so /usr/lib/
