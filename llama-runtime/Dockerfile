@@ -4,6 +4,8 @@ RUN dnf update -y && dnf install -y \
   cmake git ninja-build gcc-c++ \
   && dnf clean all
 
+RUN uname -m
+
 RUN git clone --recursive https://github.com/wernsaar/OpenBLAS.git && cd OpenBLAS && \
     git checkout develop && \
     make -j$(nproc --all) TARGET=POWER10 USE_THREAD=1 && \
