@@ -1,12 +1,12 @@
 FROM registry.access.redhat.com/ubi9/ubi as builder
 
 RUN dnf update -y && dnf install -y \
-  cmake git ninja-build gcc-c++ cross-gcc-ppc64le \
+  cmake git ninja-build gcc-c++ \
   && dnf clean all
 
 RUN git clone --recursive https://github.com/wernsaar/OpenBLAS.git && cd OpenBLAS && \
     git checkout develop && \
-    make -j$(nproc --all) TARGET=X86_64 CC=ppc64le-linux-gnu-gcc USE_THREAD=1 && \
+    make -j$(nproc --all) TARGET=POWER10 USE_THREAD=1 && \
     make PREFIX=/opt/OpenBLAS install && \
     cd /
 
