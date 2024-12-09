@@ -19,7 +19,7 @@ RUN git clone https://github.com/DanielCasali/llama.cpp.git && cd llama.cpp && s
 
 CMD bash
 
-FROM registry.access.redhat.com/ubi9/ubi
+FROM registry.access.redhat.com/ubi9/ubi 
 
 COPY --from=builder --chmod=755 /llama.cpp/build/bin/llama-server /usr/local/bin
 COPY --from=builder --chmod=644 /llama.cpp/build/src/libllama.so /llama.cpp/build/src/libllama.so
