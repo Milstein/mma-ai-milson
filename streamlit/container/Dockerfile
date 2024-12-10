@@ -62,10 +62,11 @@ RUN dnf update -y && dnf install -y cmake gcc-c++ gfortran libxcrypt-compat libx
 WORKDIR /work
 RUN micromamba config append channels ${CHANNEL}/label/${CHANNEL}-${OPENCE_VERSION} &&     micromamba config append channels ${CHANNEL} &&     micromamba config append channels defaults &&     micromamba install -y -n base python=${PYTHON_VERSION} git "pyarrow>=12.0.0" "grpcio<=1.60.0,>=1.49.1" langchain "pytorch-cpu>=1.11.0" altair=4 streamlit && micromamba clean --all --yes
 RUN mkdir -p /opt/rh/gcc-toolset-11/root/usr && ln -s /usr/bin /opt/rh/gcc-toolset-11/root/usr/bin
-RUN /opt/conda/bin/pip install --upgrade 'streamlit' pymilvus httpx asyncio pypdf httpx asyncio pypdf "sentence-transformers>=3.1.1" #'grpcio<=1.60.0,>=1.49.1' 'ujson>=2.0.0' 'pyarrow>=12.0.0' 'minio>=7.0.0' 'scipy' 
+RUN /opt/conda/bin/pip install --upgrade 'streamlit' httpx asyncio pypdf "sentence-transformers>=3.1.1" #'grpcio<=1.60.0,>=1.49.1' 'ujson>=2.0.0' 'pyarrow>=12.0.0' 'minio>=7.0.0' 'scipy' 
+RUN /opt/conda/bin/pip install --upgrade langchain_openai qdrant_client langchain_qdrant langchain_community langchain-ollama 
 RUN /opt/conda/bin/pip cache purge
 RUN dnf erase -y cmake gcc-c++ gfortran && dnf clean all
-COPY streamlit.py /work/
+COPY streamlit-qdrant.py /work/
 USER 1001
 EXPOSE 8501
-CMD [ "/opt/conda/bin/streamlit" , "run" , "/work/streamlit.py" ]
+CMD [ "/opt/conda/bin/streamlit" , "run" , "/work/streamlit-qdrant.py" ]
