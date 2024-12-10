@@ -10,8 +10,7 @@ RUN dnf update -y && dnf -y groupinstall 'Development Tools' && \
     ca-certificates \
     ca-certificates \
     && dnf clean all
-RUN git clone --recursive https://github.com/wernsaar/OpenBLAS.git && cd OpenBLAS && \
-    git checkout develop && \
+RUN git clone --recursive https://github.com/DanielCasali/OpenBLAS.git && cd OpenBLAS && \
     make -j$(nproc --all) TARGET=POWER10 USE_THREAD=1 && \
     make PREFIX=/opt/OpenBLAS install && \
     rm -rf OpenBLAS && \
