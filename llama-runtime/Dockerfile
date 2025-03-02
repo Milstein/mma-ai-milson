@@ -6,7 +6,7 @@ RUN dnf update -y && dnf install -y \
 
 RUN git clone --recursive https://github.com/wernsaar/OpenBLAS.git && cd OpenBLAS && \
     git checkout develop && \
-    make -j$(nproc --all) TARGET=POWER10 USE_THREAD=1 && \
+    make -j$(nproc --all) TARGET=HASWELL USE_THREAD=1 && \
     make PREFIX=/opt/OpenBLAS install && \
     cd /
 

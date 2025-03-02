@@ -99,7 +99,7 @@ spec:
               memory: 2Gi
           terminationMessagePath: /dev/termination-log
       containers:
-        - image: quay.io/milstein/llama-runtime-ubi:latest
+        - image: quay.io/milstein/llama-runtime-ubi:develop
           imagePullPolicy: Always
           args: ["-m", "/models/mistral-7b-instruct-v0.3.Q4_K_M.gguf", "--prio", "3", "-c", "4096","-b", "32", "-t", "48", "-n", "-1"]
           name: mma-ai
@@ -222,28 +222,6 @@ spec:
   ipFamilies:
   - IPv4
   ipFamilyPolicy: SingleStack
-  ports:
-    - name: http
-      port: 8080
-      protocol: TCP
-      targetPort: 8080
-  selector:
-    app: mma-ai
-    deployment: mma-ai
-  sessionAffinity: None
-  type: ClusterIP
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: "llama-service"
-  labels:
-    app: mma-ai
-    app.kubernetes.io/component: mma-ai
-    app.kubernetes.io/instance: mma-ai
-    app.kubernetes.io/name: mma-ai
-    app.kubernetes.io/part-of: mma-ai-app
-spec:
   ports:
     - name: http
       port: 8080
