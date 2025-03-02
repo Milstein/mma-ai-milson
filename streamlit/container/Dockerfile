@@ -67,4 +67,4 @@ RUN dnf erase -y cmake gcc-c++ gfortran && dnf clean all
 COPY streamlit-qdrant.py /work/
 USER 1001
 EXPOSE 8501
-CMD [ "/opt/conda/bin/streamlit" , "run" , "/work/streamlit-qdrant.py" ]
+CMD [ "/opt/conda/bin/streamlit" , "run" , "/work/streamlit.py" ]

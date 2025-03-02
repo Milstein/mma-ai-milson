@@ -17,8 +17,8 @@ st.title("Retrieval Augmented Generation based on a given pdf")
 # Milvus and LLAMA connection parameters
 MILVUS_HOST = "milvus-service"
 MILVUS_PORT = "19530"
-LLAMA_HOST = "llama-service"
-LLAMA_PORT = "8080"
+LLAMA_HOST = "ollama-service"
+LLAMA_PORT = "11434"
 
 # Function to download and process PDFs
 @st.cache_resource
